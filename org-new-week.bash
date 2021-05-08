@@ -1,6 +1,11 @@
 #!/bin/bash
+#
+# Start a new week in my Org repository.
+# shellcheck disable=SC2181
 
-# Target directories
+### Variables
+
+# Target directory
 ORG_DIR="${HOME}/org"
 
 # Last week's date string (e.g. 2019-w30)
@@ -10,138 +15,138 @@ LAST_WEEK_DATE=$(date -d 'last week' +%Y-w%V)
 CURRENT_WEEK_DATE=$(date +%Y-w%V)
 
 # Last week's lifelog
-LIFELOG_FILENAME="lifelog-${LAST_WEEK_DATE}.org"
-LIFELOG_FILE="${ORG_DIR}/${LIFELOG_FILENAME}"
+PREV_LIFELOG_NAME="lifelog-${LAST_WEEK_DATE}.org"
+PREV_LIFELOG="${ORG_DIR}/${PREV_LIFELOG_NAME}"
 
 # Last week's encrypted lifelog
-LIFELOG_FILENAME_GPG="${LIFELOG_FILENAME}.gpg"
-LIFELOG_FILE_GPG="${ORG_DIR}/${LIFELOG_FILENAME_GPG}"
+PREV_LIFELOG_NAME_GPG="${PREV_LIFELOG_NAME}.gpg"
+PREV_LIFELOG_GPG="${ORG_DIR}/${PREV_LIFELOG_NAME_GPG}"
 
 # Next lifelog
-LIFELOG_FILENAME_NEXT="lifelog-${CURRENT_WEEK_DATE}.org"
-LIFELOG_FILE_NEXT="${ORG_DIR}/${LIFELOG_FILENAME_NEXT}"
+NEXT_LIFELOG_NAME="lifelog-${CURRENT_WEEK_DATE}.org"
+NEXT_LIFELOG="${ORG_DIR}/${NEXT_LIFELOG_NAME}"
 
-# Encrypt last week's lifelog
+### Functions
 
-echo "##### Encryption of last week's lifelog"
+###
+# Description:
+#   Encrypt last week's lifelog and commit it in last week's Git branch.
+# Globals:
+#   PREV_LIFELOG, PREV_LIFELOG_GPG
+# Arguments:
+#   None
+encrypt_and_commit() {
+  if [[ ! -f ${PREV_LIFELOG} ]]; then
+    echo "WARNING - last week's lifelog not found! [${PREV_LIFELOG}]"
+    echo "Skipping encryption and commit..."
+    return
+  fi
 
-echo "-> Checking if last week's lifelog exists..."
-
-if [[ -f ${LIFELOG_FILE} ]]; then
-    echo "OK - last week's lifelog exists. [${LIFELOG_FILE}]."
-else
-    echo "ERROR - last week's lifelog not found! [${LIFELOG_FILE}]"
+  if [[ -f ${PREV_LIFELOG_GPG} ]]; then
+    echo "ERROR - the encrypted lifelog already exists! [${PREV_LIFELOG_GPG}]"
     echo "Exiting."
     exit 1
-fi
+  fi
 
-echo "-> Checking if encrypted lifelog already exists..."
+  echo "-> Encrypting lifelog..."
 
-if [[ -f ${LIFELOG_FILE_GPG} ]]; then
-    echo "ERROR - the encrypted lifelog already exists! [${LIFELOG_FILE_GPG}]"
+  gpg -a -o "${PREV_LIFELOG_GPG}" -e "${PREV_LIFELOG}"
+
+  if [[ $? -eq 0 ]]; then
+    echo "Lifelog encrypted successfully. [${PREV_LIFELOG_GPG}]"
+  else
+    echo "ERROR - encryption failed!"
     echo "Exiting."
     exit 1
-else
-    echo "OK - the encrypted lifelog doesn't already exist. [${LIFELOG_FILE_GPG}]"
-fi
+  fi
 
-echo "-> Encrypting lifelog..."
+  echo "-> Committing lifelog on last week's branch..."
 
-gpg -a -o ${LIFELOG_FILE_GPG} -e ${LIFELOG_FILE}
+  BRANCH=$(git -C "${ORG_DIR}" symbolic-ref HEAD 2>/dev/null | cut -d"/" -f 3)
 
-if [[ $? -eq 0 ]]; then
-    echo "OK - encrypted lifelog created successfully. [${LIFELOG_FILE_GPG}]"
-else
-    echo "ERROR - encrypted lifelog creation failed! [${LIFELOG_FILE_GPG}]"
+  if [[ "${BRANCH}" != "${LAST_WEEK_DATE}" ]]; then
+    echo "ERROR - can't commit on ${BRANCH}: not last week's branch!"
     echo "Exiting."
     exit 1
-fi
+  fi
 
-echo "##### DONE."
+  git -C "${ORG_DIR}" add "${PREV_LIFELOG_GPG}" && git -C "${ORG_DIR}" commit -m "Ajout de ${PREV_LIFELOG_NAME_GPG}"
 
-# Commiting the encrypted lifelog
-
-echo -e "\n##### Commiting encrypted lifelog"
-
-echo "-> Checking current branch..."
-
-BRANCH=$(git -C ${ORG_DIR} symbolic-ref HEAD 2>/dev/null | cut -d"/" -f 3)
-
-if [[ "${BRANCH}" != "${LAST_WEEK_DATE}" ]]; then
-    echo "ERROR - wrong branch! [${BRANCH}]"
+  if [[ $? -eq 0 ]]; then
+    echo "Encrypted lifelog committed successfully on ${BRANCH}."
+  else
+    echo "ERROR - commit failed on branch ${BRANCH}!"
     echo "Exiting."
     exit 1
-else
-    echo "OK - we are on the right branch. [${BRANCH}]"
-fi
+  fi
+}
 
-echo "-> Commiting encrypted lifelog on last week's branch..."
-
-git -C ${ORG_DIR} add "${LIFELOG_FILE_GPG}"
-git -C ${ORG_DIR} commit -m "Ajout de ${LIFELOG_FILENAME_GPG}"
-
-echo "##### DONE."
-
-# Creating a new lifelog
-
-echo -e "\n##### Creation of a new lifelog"
-
-echo "-> Checking if new lifelog already exists..."
-
-if [[ -f ${LIFELOG_FILE_NEXT} ]]; then
-    echo "ERROR - the new lifelog already exists! [${LIFELOG_FILE_NEXT}]"
+###
+# Description:
+#   Create a new lifelog.
+# Globals:
+#   NEXT_LIFELOG
+# Arguments:
+#   None
+new_lifelog() {
+  if [[ -f ${NEXT_LIFELOG} ]]; then
+    echo "ERROR - the new lifelog already exists! [${NEXT_LIFELOG}]"
     echo "Exiting."
     exit 1
-else
-    echo "OK - the new lifelog doesn't already exist. [${LIFELOG_FILE_NEXT}]"
-fi
-    
-echo "-> Creating a new lifelog..."
+  fi
 
-# TODO Commencer au lundi de la semaine courante (sinon tout est décalé)
+  declare -A weekdays
+  weekdays=([1]=lun. [2]=mar. [3]=mer. [4]=jeu. [5]=ven. [6]=sam. [7]=dim.)
 
-declare -A weekdays
-weekdays=([0]=lun. [1]=mar. [2]=mer. [3]=jeu. [4]=ven. [5]=sam. [6]=dim.)
-
-cat > ${LIFELOG_FILE_NEXT} << EOF
+  cat >"${NEXT_LIFELOG}" <<EOF
 #+TITLE: Lifelog ${CURRENT_WEEK_DATE}
 
-$(for i in $(seq 6 -1 0)
-do
-    DATE=$(date -d "+$i days" -I)
+$(for i in $(seq 7 -1 1); do
+    DAY_NUMBER=$(date '+%u')
+    OFFSET=$((i - DAY_NUMBER))
+    DATE=$(date -d "${OFFSET} days" -I)
     WEEKDAY=${weekdays[$i]}
     ORG_DATE="* [${DATE} ${WEEKDAY}]"
     echo "${ORG_DATE}"
-done)
+  done)
 EOF
 
-if [[ $? -eq 0 ]]; then
-    echo "OK - new lifelog created successfully. [${LIFELOG_FILE_NEXT}]"
-else
-    echo "ERROR - new lifelog creation failed! [${LIFELOG_FILE_NEXT}]"
+  if [[ $? -ne 0 ]]; then
+    echo "ERROR - new lifelog creation failed! [${NEXT_LIFELOG}]"
     echo "Exiting."
     exit 1
-fi
+  fi
 
-echo "##### DONE."
-
-# Preparing a new branch
-
-# Prepare the next branch (e.g. 2019-w30 -> 2019-w31)
-prepare_next_branch () {
-    echo "-> Preparing new branch in $1"
-    echo "Creating squash commit on master..."
-    git -C $1 checkout master
-    git -C $1 merge --squash ${LAST_WEEK_DATE}
-    git -C $1 commit -m "Merge ${LAST_WEEK_DATE}"
-    echo "Tagging..."
-    git -C $1 tag v${LAST_WEEK_DATE} HEAD
-    echo "-> Creating a new branch for this week..."
-    git -C $1 checkout -b ${CURRENT_WEEK_DATE}
+  echo "New lifelog created successfully. [${NEXT_LIFELOG}]"
 }
 
+###
+# Description:
+#   Merge-squash last week's branch into master, tag the commit and create this week's branch.
+# Globals:
+#   ORG_DIR
+# Arguments:
+#   None
+merge_and_branch() {
+  echo "-> Creating squash commit on master..."
+  git -C "${ORG_DIR}" checkout master
+  git -C "${ORG_DIR}" merge --squash "${LAST_WEEK_DATE}"
+  git -C "${ORG_DIR}" commit -m "Merge ${LAST_WEEK_DATE}"
+
+  echo "-> Tagging..."
+  git -C "${ORG_DIR}" tag "v${LAST_WEEK_DATE}" HEAD
+
+  echo "-> Creating a new branch for this week..."
+  git -C "${ORG_DIR}" checkout -b "${CURRENT_WEEK_DATE}"
+}
+
+### Main
+
+echo -e "\n##### Encryption and commit of last week's lifelog"
+encrypt_and_commit
+
+echo -e "\n##### Creation of a new lifelog"
+new_lifelog
+
 echo -e "\n##### Preparation of current week's branches"
-
-prepare_next_branch ${ORG_DIR}
-
-echo "##### DONE."
+merge_and_branch
