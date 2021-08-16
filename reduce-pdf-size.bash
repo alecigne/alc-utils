@@ -1,8 +1,8 @@
 #!/bin/bash
+#
+# Reduce the size of a PDF.
 
-### Script utilitaire de manipulation des PDFs.
-
-### Fonctions
+### Functions
 
 usage () {
     cat <<HELP_USAGE
@@ -10,7 +10,7 @@ usage () {
 HELP_USAGE
 }
 
-### Code
+### Main
 
 if [[ $# -ne 2 ]] ; then
     usage
