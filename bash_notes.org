@@ -1,0 +1,96 @@
+#+TITLE: Bash notes
+
+Tricks & personal rules. Work in progress.
+
+* Style
+:PROPERTIES:
+:CREATED:  [2021-11-01 Mon 14:26]
+:END:
+
+** File structure
+:PROPERTIES:
+:CREATED:  [2021-11-01 Mon 14:33]
+:END:
+
+- Setup :: Includes, set statements, etc.
+
+- Constants ::
+
+- Functions :: Define all functions. The last one should be a ~main~
+  function that wraps up other functions.
+
+- Main :: Executable code.
+
+* Tricks
+:PROPERTIES:
+:CREATED:  [2021-11-01 Mon 14:26]
+:END:
+
+** Loading dependencies
+:PROPERTIES:
+:CREATED:  [2021-11-01 Mon 14:21]
+:END:
+
+Since my utilities are all in the same directory, I just need to find
+the current script's directory to find any dependency:
+
+#+begin_src sh
+  # Find the current script's directory
+  script_dir="$(dirname "$(readlink -f "$0")")"
+
+  # Load a dependency
+  source "${script_dir}/org-create-lifelog.sh"
+#+end_src
+
+This works even when the parent script is run through a symlink (all
+my scripts are usually symlinked in =~/bin=.
+
+** Do not execute ~main~ when sourcing
+:PROPERTIES:
+:CREATED:  [2021-11-01 Mon 14:34]
+:END:
+
+When sourcing a script to include its functions, we don't want to
+execute the ~main~ function. It can be wrapped in a condition like
+this:
+
+#+begin_src sh
+  if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    main "$@"
+  fi
+#+end_src
+
+** Use optional parameters
+:PROPERTIES:
+:CREATED:  [2021-11-01 Mon 14:47]
+:END:
+
+Optional parameters can be implemented using the [[https://stackoverflow.com/a/9333006][default-value syntax]]:
+
+#+begin_src sh
+  main() {
+    local target_dir=${1:-${default_target_dir}}
+    local week_string=${2:-${default_week_string}}
+    new_lifelog "${target_dir}" "${week_string}"
+  }
+
+  main "$@"
+#+end_src
+
+Doing so should probably be ~main~'s job.
+
+** Process options
+:PROPERTIES:
+:CREATED:  [2021-11-01 Mon 15:54]
+:END:
+
+See [[https://stackoverflow.com/a/29754866][this SO answer]].
+
+* Resources
+:PROPERTIES:
+:CREATED:  [2021-11-01 Mon 14:28]
+:END:
+
+- https://bertvv.github.io/cheat-sheets/Bash.html
+- [[https://google.github.io/styleguide/shellguide.html]]
+- https://jonlabelle.com/snippets/view/markdown/defensive-bash-programming

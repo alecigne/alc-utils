@@ -1,1 +1,5 @@
 #+TITLE: My personal utils
+
+Small housekeeping utilities.
+
+A few tricks and personal rules for Bash are available in these [[file:bash_notes.org][notes]].
