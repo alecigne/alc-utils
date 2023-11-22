@@ -124,7 +124,7 @@ merge_and_branch() {
   echo "-> Creating squash commit on master..."
   git -C "${org_dir}" checkout master
   git -C "${org_dir}" merge --squash "${last_week_date}"
-  git -C "${org_dir}" commit -m "Merge ${last_week_date}"
+  git -C "${org_dir}" commit --allow-empty -m "Merge ${last_week_date}"
 
   echo "-> Tagging..."
   git -C "${org_dir}" tag "v${last_week_date}" HEAD
