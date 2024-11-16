@@ -1,5 +1,14 @@
-#+TITLE: My personal utils
+#+title: My personal utils
 
 Small housekeeping utilities.
 
 A few tricks and personal rules for Bash are available in these [[file:bash_notes.org][notes]].
+
+I "install" these scripts with [[https://github.com/casey/just][Just]]:
+
+#+begin_src bash
+  just install-symlinks
+#+end_src
+
+This Just recipe will symlink all scripts to =~/bin=, stripping their
+extension.
