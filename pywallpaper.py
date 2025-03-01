@@ -2,13 +2,13 @@
 
 import os
 import sys
+import datetime
 from urllib.parse import urlparse
-
 import requests
 
 WALLHAVEN_API_URL = "https://wallhaven.cc/api/v1/search?q=id%3A37&sorting=random&order=desc&categories=100&purity=100&atleast=1920x1080&ratios=16x9"
-WALLPAPER_DIR = os.path.expanduser("~/.wallpapers")
-SYMLINK_PATH = os.path.join(WALLPAPER_DIR, "current")
+WALLPAPER_DIR = os.path.expanduser("~/.wallpapers/download")
+SYMLINK_PATH = os.path.join(os.path.dirname(WALLPAPER_DIR), "current")
 
 
 def fetch_wallpaper_url():
@@ -28,17 +28,22 @@ def fetch_wallpaper_url():
 
 
 def download_wallpaper(url):
-    """Downloads the wallpaper and saves it with its original filename."""
+    """Downloads the wallpaper and saves it with an ISO 8601-prefixed filename."""
     if not os.path.exists(WALLPAPER_DIR):
         os.makedirs(WALLPAPER_DIR)
-    filename = os.path.basename(urlparse(url).path)
+
+    original_filename = os.path.basename(urlparse(url).path)
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+    filename = f"{timestamp}-{original_filename}"
     wallpaper_path = os.path.join(WALLPAPER_DIR, filename)
+
     try:
         response = requests.get(url, stream=True, timeout=10)
         response.raise_for_status()
         with open(wallpaper_path, "wb") as file:
             for chunk in response.iter_content(1024):
                 file.write(chunk)
+        print(f"Downloaded wallpaper: {wallpaper_path}")
         return wallpaper_path
     except requests.exceptions.RequestException as e:
         print(f"Error downloading wallpaper: {e}", file=sys.stderr)
