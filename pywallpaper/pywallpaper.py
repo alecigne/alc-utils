@@ -1,18 +1,21 @@
 #!/usr/bin/env python3
 
+import datetime
 import os
 import sys
-import datetime
+from pathlib import Path
 from urllib.parse import urlparse
+
 import requests
 
 WALLHAVEN_API_URL = "https://wallhaven.cc/api/v1/search?q=id%3A37&sorting=random&order=desc&categories=100&purity=100&atleast=1920x1080&ratios=16x9"
+TMP_DIR = "/tmp"
 WALLPAPER_DIR = os.path.expanduser("~/.wallpapers/download")
 SYMLINK_PATH = os.path.join(os.path.dirname(WALLPAPER_DIR), "current")
 
 
 def fetch_wallpaper_url():
-    """Fetches the first wallpaper URL from Wallhaven API."""
+    """Fetch a wallpaper URL from the Wallhaven API."""
     try:
         response = requests.get(WALLHAVEN_API_URL, timeout=10)
         response.raise_for_status()
@@ -28,53 +31,60 @@ def fetch_wallpaper_url():
 
 
 def download_wallpaper(url):
-    """Downloads the wallpaper and saves it with an ISO 8601-prefixed filename."""
-    if not os.path.exists(WALLPAPER_DIR):
-        os.makedirs(WALLPAPER_DIR)
-
-    original_filename = os.path.basename(urlparse(url).path)
-    timestamp = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
-    filename = f"{timestamp}-{original_filename}"
-    wallpaper_path = os.path.join(WALLPAPER_DIR, filename)
+    """Download the wallpaper to the temporary location, replacing any previous file."""
+    download_time = datetime.datetime.now()
+    filename = generate_filename(url, download_time)
+    tmp_path = os.path.join(TMP_DIR, filename)
 
     try:
         response = requests.get(url, stream=True, timeout=10)
         response.raise_for_status()
-        with open(wallpaper_path, "wb") as file:
+        clean_tmp_dir()
+        with open(tmp_path, "wb") as file:
             for chunk in response.iter_content(1024):
                 file.write(chunk)
-        print(f"Downloaded wallpaper: {wallpaper_path}")
-        return wallpaper_path
+        print(f"Downloaded wallpaper for preview: {tmp_path}")
+        return tmp_path
     except requests.exceptions.RequestException as e:
         print(f"Error downloading wallpaper: {e}", file=sys.stderr)
         return None
 
 
+def generate_filename(url, download_time: datetime):
+    """Generate a filename from a wallpaper URL and a download time."""
+    timestamp = download_time.strftime("%Y-%m-%dT%H:%M:%S")
+    original_filename = os.path.basename(urlparse(url).path)
+    return f"{timestamp}-{original_filename}"
+
+
+def clean_tmp_dir():
+    """Remove all wallpapers from the temporary location."""
+    for file in Path(TMP_DIR).glob("*-wallhaven-*"):
+        file.unlink()
+
+
 def update_symlink(image_path):
-    """Creates or updates a symlink to always point to the latest wallpaper."""
+    """Create or update a symlink to always point to the latest wallpaper."""
     if os.path.exists(SYMLINK_PATH) or os.path.islink(SYMLINK_PATH):
         os.remove(SYMLINK_PATH)
     os.symlink(image_path, SYMLINK_PATH)
     print(f"Symlink updated: {SYMLINK_PATH} -> {image_path}")
 
 
-def set_wallpaper():
-    """Sets the wallpaper using the symlink."""
-    os.system(f"feh --bg-scale {SYMLINK_PATH}")
+def set_wallpaper(wallpaper_path):
+    """Set the wallpaper."""
+    os.system(f"feh --bg-scale {wallpaper_path}")
 
 
 def main():
-    """Main function to fetch, download, create symlink, and set wallpaper."""
+    """TODO"""
     wallpaper_url = fetch_wallpaper_url()
-
+    print(f"Wallpaper URL fetched: {wallpaper_url}")
     if wallpaper_url:
-        print(f"Downloading wallpaper: {wallpaper_url}")
         image_path = download_wallpaper(wallpaper_url)
-
+        print(f"Wallpaper downloaded: {image_path}")
         if image_path:
-            update_symlink(image_path)
-            print(f"Setting wallpaper using symlink: {SYMLINK_PATH}")
-            set_wallpaper()
+            set_wallpaper(image_path)
             print("Wallpaper updated successfully.")
         else:
             print("Failed to download wallpaper.", file=sys.stderr)
