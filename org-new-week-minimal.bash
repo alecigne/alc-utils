@@ -2,8 +2,8 @@
 
 # TODO Fill this :)
 org_dir=""
-readonly last_week_date=$(date -d 'last week' +%Y-w%V)
-readonly current_week_date=$(date +%Y-w%V)
+readonly last_week_date=$(date -d 'last week' +%G-w%V)
+readonly current_week_date=$(date +%G-w%V)
 readonly new_tag="v${last_week_date}"
 
 echo "Squashing branch ${last_week_date} on master..."

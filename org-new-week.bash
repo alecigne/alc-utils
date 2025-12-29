@@ -20,10 +20,10 @@ create_new_lifelog=false
 readonly org_dir="${HOME}/org"
 
 # Last week's date string (e.g. 2019-w30)
-readonly last_week_date=$(date -d 'last week' +%Y-w%V)
+readonly last_week_date=$(date -d 'last week' +%G-w%V)
 
 # This week's date string (e.g. 2019-w31)
-readonly current_week_date=$(date +%Y-w%V)
+readonly current_week_date=$(date +%G-w%V)
 
 # Last week's lifelog
 readonly prev_lifelog_name="lifelog-${last_week_date}.org"
