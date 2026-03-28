@@ -12,3 +12,44 @@ I "install" these scripts with [[https://github.com/casey/just][Just]]:
 
 This Just recipe will symlink all scripts to =~/bin=, stripping their
 extension.
+
+* Documentation
+:PROPERTIES:
+:CREATED:  [2026-03-27 Fri 10:41]
+:END:
+
+** =sbx.bash=
+:PROPERTIES:
+:CREATED:  [2026-03-27 Fri 10:40]
+:END:
+
+=sbx= is a script that creates a [[https://github.com/containers/bubblewrap][bubblewrap]] (=bwrap=) sandbox using
+preconfigured homedirs.
+
+Take a look at it: [[file:sbx.bash][sbx.bash]].
+
+- =--sandbox= uses a particular sandbox homedir.
+- =--project= binds a particular project in the sandbox home.
+
+The homedirs live under =~/etc/sandboxes=. The entire directory is
+under version control. A typical sandbox homedir looks like this:
+
+#+begin_example
+  .
+  ├── codex
+  │   ├── home
+  │   │   └── .codex
+  │   │       ├── auth.json
+  │   │       └── config.toml
+  │   └── .sbx-profile
+#+end_example
+
+- =home= is what will become the actual =$HOME= in the bwrap sandbox.
+- =.sbx-profile= defines extra arguments for =bwrap=. For codex:
+
+  #+begin_src sh
+    BWRAP_EXTRA+=(
+      --ro-bind "${HOME}/.local/share/fnm" "${BWRAP_HOME}/.local/share/fnm"
+      --setenv PATH "${BWRAP_HOME}/.local/share/fnm/node-versions/v24.13.0/installation/bin:/usr/bin:/bin"
+    )
+  #+end_src
