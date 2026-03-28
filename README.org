@@ -23,6 +23,8 @@ extension.
 :CREATED:  [2026-03-27 Fri 10:40]
 :END:
 
+⚠️ This is a work in progress.
+
 =sbx= is a script that creates a [[https://github.com/containers/bubblewrap][bubblewrap]] (=bwrap=) sandbox using
 preconfigured homedirs.
 
@@ -32,16 +34,25 @@ Take a look at it: [[file:sbx.bash][sbx.bash]].
 - =--project= binds a particular project in the sandbox home.
 
 The homedirs live under =~/etc/sandboxes=. The entire directory is
-under version control. A typical sandbox homedir looks like this:
+under version control (very privately, of course). A typical sandbox
+homedir could look like this:
 
 #+begin_example
-  .
-  ├── codex
-  │   ├── home
-  │   │   └── .codex
-  │   │       ├── auth.json
-  │   │       └── config.toml
-  │   └── .sbx-profile
+  codex
+  ├── etc
+  │   ├── group
+  │   ├── nsswitch.conf
+  │   └── passwd
+  ├── home
+  │   ├── .codex
+  │   │   ├── auth.json
+  │   │   └── config.toml
+  │   └── .ssh
+  │       ├── id_ed25519
+  │       ├── id_ed25519.pub
+  │       ├── known_hosts
+  │       └── known_hosts.old
+  └── .sbx-profile
 #+end_example
 
 - =home= is what will become the actual =$HOME= in the bwrap sandbox.
